@@ -7,7 +7,7 @@
 #include <strings.h>
 #include <time.h>
 #include <unistd.h>
-#include <wordexp.h>
+
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>
 #include <X11/Xutil.h>
@@ -35,7 +35,6 @@ struct item {
 };
 
 static char text[BUFSIZ] = "";
-static char pipeout[8] = " | dmenu";
 static char *embed;
 static int bh, mw, mh;
 static int inputw = 0, promptw;
@@ -465,20 +464,7 @@ insert:
 		break;
 	case XK_Return:
 	case XK_KP_Enter:
-		if ((sel && !(ev->state & ShiftMask))) {
-			if (sel->text[0] == startpipe[0]) {
-				strncpy(sel->text + strlen(sel->text),pipeout,8);
-				puts(sel->text+1);
-			}
-				puts(sel->text);
-			}
-			else {
-			if (text[0] == startpipe[0]) {
-				strncpy(text + strlen(text),pipeout,8);
-				puts(text+1);
-			}
-				puts(text);
-			}
+		puts((sel && !(ev->state & ShiftMask)) ? sel->text : text);
 		if (!(ev->state & ControlMask)) {
 			cleanup();
 			exit(0);
@@ -501,10 +487,6 @@ insert:
 		}
 		break;
 	case XK_Tab:
-		if( strchr(text, ' ')!=NULL ) {
-			matchfile(strchr(text, ' ')+1);
-			break;
-		}
 		if (!sel)
 			return;
 		strncpy(text, sel->text, sizeof text - 1);
@@ -534,35 +516,6 @@ paste(void)
 		XFree(p);
 	}
 	drawmenu();
-}
-
-void
-matchfile(char *filestart) {
-	wordexp_t exp;
-	int i, j, k, p=strlen(filestart);
-	filestart[p+1] = 0;
-	filestart[p] = '*';
-
-	wordexp(filestart, &exp, 0);
-	if (exp.we_wordc > 0) {
-		for(j=0,i=0; exp.we_wordv[0][i]!=0; i++,j++) {
-			if( exp.we_wordv[0][i] == ' ') filestart[j++]='\\';
-			filestart[j]=exp.we_wordv[0][i];
-		}
-		filestart[j]=0;
-
-		for(k=1; k<exp.we_wordc; k++) // comment this block for first-completion
-			for(j=0, i=0; exp.we_wordv[k][i]; i++, j++) {
-				if(filestart[j] == '\\') j++;
-				if(filestart[j] != exp.we_wordv[k][i]) {
-					filestart[j] = 0;
-					break;
-				}
-			}
-	} else {
-		filestart[p] = 0;
-	}
-	wordfree(&exp);
 }
 
 static void
